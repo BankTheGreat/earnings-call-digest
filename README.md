@@ -58,6 +58,8 @@ fetcher: `pip install -U yt-dlp`.
 
 ---
 
+> 📖 **New here? The full step-by-step guide is in [USAGE.md](USAGE.md).**
+
 ## Quick start
 
 ### 1. Session mode (no API key)
