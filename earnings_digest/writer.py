@@ -1,9 +1,9 @@
 """Filesystem layer: cache pair, revisions, KB render placement, index.
 
 INVERTER mitigations implemented here:
-  F1 — NEVER glob under the KB tree (path segments contain literal brackets:
-       [ALL], [Aerith-related], [<video_id>]); iterdir/scandir walks only.
-  F2 — quarantine-not-delete: OneDrive conflict copies are REPORTED, never
+  F1 — NEVER glob under the KB tree (filenames contain literal brackets:
+       "<date> [<video_id>] <title>.md"); iterdir/scandir walks only.
+  F2 — quarantine-not-delete: cloud-sync conflict copies are REPORTED, never
        unlinked (a hand-annotated human file must survive).
   F4 — single current pointer: the canonical filename IS the current revision;
        a superseded render is renamed "... (superseded rN).md", never deleted.
@@ -39,7 +39,7 @@ def atomic_write(path: Path, text: str) -> None:
 
 
 def now_ict() -> str:
-    # ICT is UTC+7 with no DST (§3.5); wall clock on this box is ICT.
+    # ICT is UTC+7 with no DST; wall clock on this box is ICT.
     return time.strftime("%Y-%m-%dT%H:%M:%S+07:00")
 
 
@@ -191,7 +191,7 @@ def find_kb_files(video_id: str) -> list[Path]:
 
 
 def conflict_copies(kb_file: Path, video_id: str) -> list[Path]:
-    """OneDrive fork copies next to a KB file — reported, NEVER deleted (F2)."""
+    """Cloud-sync fork copies next to a KB file — reported, NEVER deleted (F2)."""
     if not kb_file.parent.is_dir():
         return []
     needle = f"[{video_id}]"
@@ -245,7 +245,7 @@ def write_kb_render(
 
     for c in conflict_copies(actual, video_id):
         warnings.append(
-            f"OneDrive conflict copy detected (kept, not touched — resolve by hand): {c.name}"
+            f"cloud-sync conflict copy detected (kept, not touched — resolve by hand): {c.name}"
         )
     return actual, warnings
 
@@ -344,7 +344,7 @@ def index_rebuild() -> int:
             "transcript_status": fm.get("transcript_status"),
             "analysis_status": fm.get("analysis_status"),
             # D4 dashboard fields (2026-08-05) — the index is the dashboard's
-            # single read surface (§3.16); keep in lockstep with
+            # single read surface; keep in lockstep with
             # cli.index_row_from_front. Frontmatter reads back as strings —
             # coerce numerics so consumers get typed rows.
             "period": fm.get("period"),

@@ -1,10 +1,9 @@
-# provenance: aerith-direct (acknowledged-bypass: standalone extraction of Master-Bank-owned engine per approved plan swift-mixing-stallman)
 """Mode B (headless API) analysis via the workspace's provider-neutral
-llm_client.py (§3.10). The persona template is rendered into ONE user message
+llm_client.py. The persona template is rendered into ONE user message
 with hard untrusted-data fencing (llm_client demotes "system" on Gemini —
-verified; single-user-message + fencing is also the §7-robust portable shape).
+verified; single-user-message + fencing is also the injection-robust portable shape).
 
-Cost discipline (§3.9): estimate BEFORE the call against --max-spend; the
+Cost discipline: estimate BEFORE the call against --max-spend; the
 actual cost is returned and recorded in frontmatter.
 """
 from __future__ import annotations
@@ -147,7 +146,7 @@ def run_api(
     prompt = build_prompt(template_body, front, ticker_hint, sanitized_transcript)
 
     estimate = estimate_cost_usd(len(prompt), model)
-    print(f"[§3.9] cost estimate ~${estimate:.3f} ({vendor}/{model}) — cap ${cap:.2f}")
+    print(f"cost estimate ~${estimate:.3f} ({vendor}/{model}) — cap ${cap:.2f}")
     if estimate > cap:
         raise CostGateError(estimate, cap)
 
@@ -166,7 +165,7 @@ def run_api(
             )
         except Exception as exc:  # noqa: BLE001 — surfaced as a typed, REDACTED error
             # Never let vendor exceptions (which may embed URLs/response bodies)
-            # escape as raw tracebacks into transcripts/logs (§3.17.1).
+            # escape as raw tracebacks into logs.
             raise SummarizeError(
                 f"vendor call failed ({vendor}/{model}): {type(exc).__name__}: "
                 f"{str(exc)[:200]}"
@@ -177,7 +176,7 @@ def run_api(
         total_cost += float(cost or 0.0)
         try:
             analysis = extract_json(resp.text or "")
-            print(f"[§3.9] actual spend ${total_cost:.4f} ({attempt} call(s))")
+            print(f"actual spend ${total_cost:.4f} ({attempt} call(s))")
             return analysis, total_cost, model
         except (SummarizeError, json.JSONDecodeError) as exc:
             last_err = exc
@@ -235,7 +234,7 @@ def run_polish(
     """REQ-012 Phase-1: return (polished_text, cost_usd, model). Output length
     ~= input length, so the estimate uses input-sized output tokens and the
     per-call output cap scales with the chunk. Raises CostGateError /
-    SummarizeError (REDACTED — never raw vendor tracebacks, §3.17.1)."""
+    SummarizeError (REDACTED — never raw vendor tracebacks)."""
     vendor = vendor or config.DEFAULT_VENDOR
     model = model or config.DEFAULT_MODEL
     cap = config.DEFAULT_MAX_SPEND_USD if max_spend is None else max_spend
@@ -250,7 +249,7 @@ def run_polish(
     if estimate <= 0:
         estimate = (in_tokens * _FALLBACK_IN_PER_M + out_tokens * _FALLBACK_OUT_PER_M) / 1_000_000
     print(
-        f"[§3.9] polish cost estimate ~${estimate:.3f} ({vendor}/{model}, "
+        f"polish cost estimate ~${estimate:.3f} ({vendor}/{model}, "
         f"{len(chunks)} chunk(s)) — cap ${cap:.2f} (spent ${spent_usd:.4f})"
     )
     if spent_usd + estimate > cap:
@@ -273,7 +272,7 @@ def run_polish(
                 max_tokens=max_out,
                 timeout=600.0,
             )
-        except Exception as exc:  # noqa: BLE001 — REDACTED typed error (§3.17.1)
+        except Exception as exc:  # noqa: BLE001 — REDACTED typed error
             raise SummarizeError(
                 f"polish vendor call failed ({vendor}/{model}): {type(exc).__name__}: "
                 f"{str(exc)[:200]}"
@@ -286,5 +285,5 @@ def run_polish(
         if not piece:
             raise SummarizeError(f"polish part {i}/{len(chunks)}: empty model output")
         pieces.append(piece)
-    print(f"[§3.9] polish actual spend ${total_cost:.4f} ({len(chunks)} call(s))")
+    print(f"polish actual spend ${total_cost:.4f} ({len(chunks)} call(s))")
     return "\n\n".join(pieces), total_cost, model

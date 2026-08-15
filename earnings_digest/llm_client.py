@@ -1,43 +1,18 @@
-"""
-llm_client.py — Aerith's raw-httpx multi-vendor LLM adapter (PRIMARY swap point)
+"""llm_client.py — a small multi-vendor LLM adapter (one swap point).
 
-Status: PROMOTED from SPIKE to PRIMARY 2026-04-26 (Master Bank directive O2).
-Trigger: Python 3.14 incompatibility with litellm 1.83.14 (the G2 hash-pin
-target) surfaced as a forcing function during cross_audit.py refactor;
-since this file already covers all 3 vendors cleanly with full feature
-parity, it is now the canonical §3.10 R2 single-import-boundary for
-aerith-core/scripts/. cross_audit.py v3.4 imports `complete()` from here.
-
-Original purpose (spike phase): Resolve AUDITOR attack #5 from /learn_master
-litellm v1.0 by measuring whether ~200 LOC of plain Python with httpx can
-cover Master Bank's 3 actual vendors (Anthropic · Gemini · OpenAI) with
-full feature parity for the 4 features flagged unaudited or lossy in
-LiteLLM:
-
-    1. Streaming
-    2. Tool use
-    3. Prompt caching (Anthropic cache_control)
-    4. Extended thinking (Anthropic / Gemini)
-
-Outcome: spike PASSED on coverage; promoted. See `litellm.md` v1.2
-Adoption Decision Log for the full G1/G2 reconciliation. LiteLLM remains
-ADOPTED per the v4 directive but is not invoked from this file or from
-cross_audit.py until a vendor feature surfaces that this raw-httpx
-implementation cannot cover.
-
-This file:
-  - Has ZERO third-party LLM dependencies (only httpx + stdlib).
-  - Honors Hard Rule §3.10 clause 2 (provider-neutral abstractions, one swap point).
-  - Is the §3.10 R3 (a) under-500-LOC delete-test counterexample applied COLD.
-  - Is provider-neutral by construction; portable to Gemini/Codex harnesses.
+Provider-neutral by construction: ZERO third-party LLM dependencies (only
+httpx + stdlib). Covers Anthropic, Gemini, and OpenAI (plus any
+OpenAI-compatible vendor) behind one `complete()` call with a unified response
+shape, plus `calc_cost()` for a rough per-call cost estimate.
 
 Usage:
-    from llm_client import complete, stream
-    r = complete("anthropic", [{"role":"user","content":"Hello"}])
+    from earnings_digest.llm_client import complete
+    r = complete("gemini", [{"role": "user", "content": "Hello"}])
     print(r.text, r.cost_usd, r.usage)
 
-    for chunk in stream("openai", [{"role":"user","content":"Tell me a joke"}]):
-        print(chunk, end="", flush=True)
+The API key for each vendor is read from that vendor's own environment variable
+(ANTHROPIC_API_KEY / GEMINI_API_KEY / OPENAI_API_KEY) — never a function
+argument, never logged, and (for Gemini) sent in a header, never the URL.
 """
 from __future__ import annotations
 
@@ -56,13 +31,12 @@ import httpx
 
 @dataclass
 class VendorConfig:
-    name: Literal["anthropic", "gemini", "openai", "deepseek"]
+    name: Literal["anthropic", "gemini", "openai"]
     base_url: str
     api_key_env: str
     default_model: str
     extra_headers: dict[str, str] = field(default_factory=dict)
     api_shape: Literal["anthropic", "gemini", "openai"] = "openai"
-    scope: Literal["any", "advisor-leaf-only"] = "any"
 
 
 VENDORS: dict[str, VendorConfig] = {
@@ -87,18 +61,6 @@ VENDORS: dict[str, VendorConfig] = {
         api_key_env="OPENAI_API_KEY",
         default_model="gpt-5",
         api_shape="openai",
-    ),
-    # DeepSeek — speaks the OpenAI shape on /v1/chat/completions.
-    # Scope HARD-PINNED to advisor-leaf-only per CLAUDE.md §3.10 cl. 6
-    # lock-in declaration (memory/feedback_deepseek_lock_in_declaration.md).
-    # Jurisdiction: PRC-Hangzhou — see memory/feedback_deepseek_security_audit.md.
-    "deepseek": VendorConfig(
-        name="deepseek",
-        base_url="https://api.deepseek.com/v1",
-        api_key_env="DEEPSEEK_API_KEY",
-        default_model="deepseek-v4-pro",
-        api_shape="openai",
-        scope="advisor-leaf-only",
     ),
 }
 
@@ -138,11 +100,6 @@ COST_CATALOG: dict[str, dict[str, float]] = {
     # Flash cache-read discount unverified — billed as input here (conservative).
     "gemini-2.5-flash":   {"in":  0.30, "cache_read": 0.30,     "out":  2.50},
     "gpt-5":              {"in":  2.50, "cache_read": 0.25,     "out": 10.00},
-    # DeepSeek promo pricing valid until 2026-05-31 — see models.yml
-    # promo_until field. Sunset cost-class re-eval scheduled in
-    # memory/feedback_deepseek_lock_in_declaration.md.
-    "deepseek-v4-pro":    {"in":  0.435, "cache_read": 0.003625, "out":  0.87},
-    "deepseek-v4-flash":  {"in":  0.14,  "cache_read": 0.014,    "out":  0.28},
 }
 
 def calc_cost(model: str, usage: dict[str, int]) -> float:
@@ -269,7 +226,7 @@ def _openai_parse(raw, model):
     )
 
 # =============================================================================
-# Public API — ONE swap point per Hard Rule §3.10 clause 2
+# Public API — the single swap point across vendors
 # =============================================================================
 
 def complete(
@@ -311,14 +268,13 @@ def complete(
         payload = _anthropic_payload(model, messages, tools, thinking_budget, max_tokens)
         parser = _anthropic_parse
     elif cfg.api_shape == "gemini":
-        # §3.17.1: key rides in the x-goog-api-key HEADER, never the URL query
-        # string — URLs leak into tracebacks, proxy logs, and httpx error text
-        # (live leak incident 2026-08-04; class-level fix per §3.16).
+        # Key rides in the x-goog-api-key HEADER, never the URL query string —
+        # URLs leak into tracebacks, proxy logs, and httpx error text.
         url = f"{cfg.base_url}/models/{model}:generateContent"
         headers = {"content-type": "application/json", "x-goog-api-key": api_key}
         payload = _gemini_payload(model, messages, tools, thinking_budget, max_tokens)
         parser = _gemini_parse
-    else:  # openai-shape (covers OpenAI native + DeepSeek + any future OpenAI-compatible vendor)
+    else:  # openai-shape (OpenAI + any OpenAI-compatible vendor)
         url = f"{cfg.base_url}/chat/completions"
         headers = {"authorization": f"Bearer {api_key}", "content-type": "application/json"}
         payload = _openai_payload(model, messages, tools, thinking_budget, max_tokens)
@@ -330,7 +286,7 @@ def complete(
             resp.raise_for_status()
         except httpx.HTTPStatusError as exc:
             # Redact the URL from the surfaced error — query strings and paths
-            # must never reach transcripts/logs via exception text (§3.17.1).
+            # must never reach logs via exception text.
             # KEEP the vendor's reason though (2026-08-05 lesson: a bare
             # "429 (URL redacted)" hid "prepayment credits are depleted" and
             # cost a day of wrong quota theories). The JSON error.message is
@@ -412,7 +368,7 @@ def stream(
                 if chunk:
                     yield chunk
     else:  # gemini
-        # §3.17.1: key in header, never the URL (see complete() — same incident).
+        # Key in header, never the URL (see complete()).
         url = f"{cfg.base_url}/models/{model}:streamGenerateContent?alt=sse"
         headers = {"content-type": "application/json", "x-goog-api-key": api_key}
         payload = _gemini_payload(model, messages, tools, thinking_budget, max_tokens)

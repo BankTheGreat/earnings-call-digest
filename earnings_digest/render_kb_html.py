@@ -1,14 +1,11 @@
-"""Mechanical KB .md -> human-readable HTML (§3.25 render, SSoT = the .md).
+"""Mechanical KB .md -> self-contained human-readable HTML (SSoT = the .md).
 
-Deterministic converter for the KB grammar render.py emits (headings, tables,
-lists, claim lines, blockquotes, frontmatter) — never hand-authored per file,
-never carrying substance the .md lacks. Output sits BESIDE the source
-(<same-name>.html) so Master Bank's per-stock OneDrive browsing finds it.
-Transcript sections fold into <details> so the analysis stays front and center.
+Renders one (or more) knowledge-base Markdown files to a standalone HTML page
+with the same name (<same-name>.html) next to the source, so a per-stock
+folder of digests is browsable offline.
 
-Usage:
-  py -3 scripts/earnings_digest/render_kb_html.py <kb.md> [<kb2.md> ...]
-  py -3 scripts/earnings_digest/render_kb_html.py --all   (every ok row in the index)
+  python -m earnings_digest.render_kb_html <kb.md> [<kb2.md> ...]
+  python -m earnings_digest.render_kb_html --all   (every ok row in the index)
 """
 from __future__ import annotations
 
@@ -761,25 +758,11 @@ def convert(md_path: Path) -> Path:
         "</div>\n"
         + "\n".join(out)
         + f"\n<footer>Source of truth: {html.escape(md_path.name)} (same folder) · rendered by "
-        f"earnings_digest v{ENGINE_VERSION} render_kb_html · {stamp} · "
-        "§3.25 render — regenerate on any source edit; the .md is canonical.</footer>\n"
+        f"earnings-call-digest v{ENGINE_VERSION} · {stamp} · "
+        "the .md is canonical — regenerate this page on any source edit.</footer>\n"
         "</body>\n</html>\n"
     )
     out_path = md_path.with_suffix(".html")
-    # §3.25 shell conformance at the write chokepoint. Contract owner:
-    # scripts/report_shell.py. This page keeps its OWN ratified layout and its own
-    # #themeToggle (MB standing 2026-08-06) — only the invariants are shared, so
-    # nothing on screen moves. Fail-open on import error: never lose a KB page.
-    try:
-        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-        import report_shell
-        problems = report_shell.assert_invariants(
-            doc, label=out_path.name, toggle_selector="#themeToggle")
-        if problems:
-            raise AssertionError(
-                "§3.25 shell conformance failed:\n  " + "\n  ".join(problems))
-    except ImportError:
-        pass
     out_path.write_text(doc, encoding="utf-8")
     return out_path
 

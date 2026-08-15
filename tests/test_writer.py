@@ -101,7 +101,7 @@ class TestKbWrite(EnvSandbox):
     def test_conflict_copy_reported_not_deleted(self):
         p1, _ = self._write()
         conflict = p1.with_name(p1.stem + " (DESKTOP-conflict).md")
-        conflict.write_text("hand-annotated by Master Bank", encoding="utf-8")
+        conflict.write_text("hand-annotated by the user", encoding="utf-8")
         p2, warnings = self._write(prior=1)
         self.assertTrue(conflict.is_file())  # F2: NEVER unlinked
         self.assertTrue(any("conflict copy" in w for w in warnings))

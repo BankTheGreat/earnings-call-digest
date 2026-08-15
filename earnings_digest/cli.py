@@ -1,5 +1,4 @@
-# provenance: aerith-direct (acknowledged-bypass: standalone extraction of Master-Bank-owned engine per approved plan swift-mixing-stallman)
-"""earnings_digest CLI — the one engine behind every front door (§3.10).
+"""earnings_digest CLI — the one engine behind every front door.
 
 Subcommands:
   run       <url> [--ticker T.Q] [--engine api|session] [--force] [--max-spend X]
@@ -141,7 +140,7 @@ def index_row_from_front(front: dict, path: Path) -> dict:
         "channel": front["channel"],
         "transcript_status": front["transcript_status"],
         "analysis_status": front["analysis_status"],
-        # D4 dashboard fields — lockstep with writer.index_rebuild (§3.16).
+        # dashboard fields — kept in lockstep with writer.index_rebuild.
         "period": front.get("period"),
         "company_name": front.get("company_name"),
         "anchored_total": front.get("anchored_total"),
@@ -194,7 +193,7 @@ def stage(args) -> tuple[dict, str | None, int] | None:
         cols = tickers.collisions(qualified, known)
         if cols:
             print(
-                f"[§3.7] note: base collides with existing KB listing(s) {', '.join(cols)} — "
+                f"note: base collides with existing KB listing(s) {', '.join(cols)} — "
                 f"filing under {qualified} as given (distinct listings coexist)."
             )
 
@@ -634,7 +633,7 @@ def _polish_from_kb_file(video_id: str) -> str | None:
 
 def cmd_rerender(args) -> int:
     """D-work maintenance: re-emit KB renders from the cache SSoT via the ONE
-    finalize path (mints a superseding revision; §3.16). Preserves polish from
+    finalize path (mints a superseding revision). Preserves polish from
     the cache artifact, else lifts it from the current render (pre-D0)."""
     rows = writer.index_load()
     targets = [args.video_id] if args.video_id else [
@@ -805,7 +804,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"URL error ({exc.kind}): {exc}")
         return code
     except tickers.TickerError as exc:
-        print(f"ticker error (§3.7): {exc}")
+        print(f"ticker error: {exc}")
         return config.EXIT_TICKER
     except fetch_mod.LiveVideoError as exc:
         print(f"live video: {exc}")

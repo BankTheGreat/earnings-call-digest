@@ -1,8 +1,7 @@
-# provenance: aerith-direct (acknowledged-bypass: self-contained reimplementation for the standalone distributable, per approved plan swift-mixing-stallman)
 """Ticker discipline — self-contained for the standalone distributable.
 
-The AerithWorkspace build imports these primitives from one canonical
-ticker_utils.py (§3.16 single-implementation rule). This public repo cannot
+The upstream build imports these primitives from one canonical
+ticker_utils.py (single-implementation rule). This standalone package cannot
 reach that file, so the five primitives (split_ticker / tickers_match /
 ticker_dirname / ticker_from_dirname / canonical_set_ticker) are reimplemented
 here with identical behavior. This is a deliberate, documented fork because the

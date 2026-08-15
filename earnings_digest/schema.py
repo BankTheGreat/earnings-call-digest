@@ -168,7 +168,7 @@ def validate(
             if _TICKER_RE.match(raw_ticker):
                 ent["ticker"] = raw_ticker
             else:
-                # Bare/malformed model ticker is NEVER trusted for filing (§3.7);
+                # Bare/malformed model ticker is NEVER trusted for filing;
                 # keep it visible as a hint, flagged.
                 ent["ticker"] = None
                 ent["ticker_hint_rejected"] = raw_ticker

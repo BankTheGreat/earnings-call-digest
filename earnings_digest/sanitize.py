@@ -1,5 +1,5 @@
-"""§7 injection scrub — the /transcribe-and-extract Layer 0.25 canon,
-implemented once for this engine.
+"""Injection scrub for untrusted transcript text, implemented once for
+this engine.
 
 CONTRACT (INVERTER F4 of the REQ register): the RAW transcript is never
 modified — it is preserved verbatim in the cache and the KB render (lossless

@@ -1,4 +1,3 @@
-# provenance: aerith-direct (acknowledged-bypass: standalone extraction of Master-Bank-owned engine per approved plan swift-mixing-stallman)
 """Ticker + quarter -> YouTube OppDay video discovery (best-effort, NEVER-GUESS).
 
 The killer failure of this feature is auto-filing the WRONG company's video

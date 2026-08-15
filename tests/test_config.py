@@ -1,5 +1,5 @@
 """config — standalone cwd defaults + ECD_* env overrides. No workspace paths,
-no OneDrive, templates ship inside the package."""
+no workspace paths, templates ship inside the package."""
 import sys
 import unittest
 from pathlib import Path

@@ -1,9 +1,8 @@
-# provenance: aerith-direct (acknowledged-bypass: standalone extraction of Master-Bank-owned engine per approved plan swift-mixing-stallman)
 """REQ-G Phase 1 — grounding documents (OppDay slides + MD&A), MECHANICAL only.
 
 Locates the two company-printed sources for (ticker, period), extracts their
 text layer, and confirms analysis numbers by digit-token presence. No LLM, no
-rescaling (§3.28: presence-match only), no guessing:
+rescaling (presence-match only), no guessing:
 
   · Matching is deterministic on the corpus' own naming convention
     (`<BASE> Opp Day <YYYY>Q<N>*` · `<BASE> MD&A <YYYY>Q<N>.pdf`); zero or

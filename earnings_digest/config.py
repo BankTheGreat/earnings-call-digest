@@ -1,4 +1,3 @@
-# provenance: aerith-direct (acknowledged-bypass: standalone extraction of Master-Bank-owned engine per approved plan swift-mixing-stallman; original authored this session)
 """Configuration for earnings-call-digest.
 
 Standalone: every path defaults to the current working directory, so the tool
