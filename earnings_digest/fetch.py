@@ -131,7 +131,20 @@ def _fetch_via_yt_dlp(video_id: str, langs: list[str]) -> FetchResult:
                   f"({','.join(langs)}) — neither manual nor auto",
         )
     kind, lang, entry = picked
-    content = _download_url(entry["url"])
+    try:
+        content = _download_url(entry["url"])
+    except NetworkError as exc:
+        # A caption-endpoint failure (e.g. HTTP 429) must NOT abort the chain:
+        # return metadata + no track so fetch_video falls through to the
+        # youtube_transcript_api fallback (real incident 2025 — timedtext 429'd
+        # while the API fallback still returned the transcript).
+        return FetchResult(
+            video_id=video_id,
+            meta=meta,
+            track=Track(),
+            acquisition_method="yt_dlp",
+            error=f"caption download failed, falling back: {str(exc)[:200]}",
+        )
     return FetchResult(
         video_id=video_id,
         meta=meta,

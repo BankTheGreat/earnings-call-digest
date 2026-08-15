@@ -93,9 +93,14 @@ def _title_has_base(title: str, base: str) -> bool:
                      title or "", re.IGNORECASE) is not None
 
 
-def _search_query(base: str, q: int, year: int) -> str:
-    # English + Thai handles: OppDay listings appear under both.
-    return f"{base} opportunity day Q{q} {year} โอกาสเดย์ oppday"
+def _search_queries(base: str) -> list[str]:
+    # Broad company-OppDay searches. The exact quarter is matched from the
+    # TITLE afterwards — putting the quarter/year IN the query over-constrains
+    # YouTube search and returns zero results (real bug, 2025), so it is left out.
+    return [
+        f"{base} opportunity day",
+        f"{base} oppday โอกาสเดย์",
+    ]
 
 
 def _raw_search(query: str, n: int) -> list[dict]:
@@ -112,6 +117,20 @@ def _raw_search(query: str, n: int) -> list[dict]:
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(f"ytsearch{n}:{query}", download=False)
     return [e for e in (info.get("entries") or []) if e]
+
+
+def _search_all(base: str, n: int) -> list[dict]:
+    """Run every broad query and merge, deduping by video id (one query alone
+    is an unreliable narrow slice of YouTube search)."""
+    seen: set[str] = set()
+    out: list[dict] = []
+    for query in _search_queries(base):
+        for e in _raw_search(query, n):
+            vid = e.get("id")
+            if vid and vid not in seen:
+                seen.add(vid)
+                out.append(e)
+    return out
 
 
 def _to_candidate(entry: dict, base: str, q: int, year: int) -> Candidate:
@@ -132,7 +151,7 @@ def search_candidates(base: str, quarter: str, n: int = 12) -> list[Candidate]:
     quarter; propagates yt_dlp/network errors to the caller (mapped by cli)."""
     q, year = parse_quarter(quarter)
     try:
-        entries = _raw_search(_search_query(base, q, year), n)
+        entries = _search_all(base, n)
     except Exception as exc:  # noqa: BLE001 — surfaced as a typed, truncated error
         raise DiscoveryError(
             f"YouTube search failed ({type(exc).__name__}): {str(exc).splitlines()[0][:200]}"

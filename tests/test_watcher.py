@@ -77,5 +77,34 @@ class TestDiscoverNeverGuess(unittest.TestCase):
             watcher.search_candidates("TU", "Q2/2026")
 
 
+class TestSearchQueryFix(unittest.TestCase):
+    def test_queries_do_not_contain_quarter_or_year(self):
+        # Regression (real bug 2025): the quarter/year must NOT be in the search
+        # query — it over-constrains YouTube search and returns zero results.
+        # The quarter is matched from the TITLE afterwards.
+        qs = watcher._search_queries("XO")
+        self.assertTrue(qs)
+        for query in qs:
+            self.assertIn("XO", query)
+            for tok in ("2026", "2569", "Q2", "/"):
+                self.assertNotIn(tok, query)
+
+    def test_search_all_merges_and_dedupes(self):
+        calls = []
+        def fake(query, n):
+            calls.append(query)
+            return [{"id": "dupvid0001x", "title": "XO oppday Q2/2569"},
+                    {"id": f"uq{len(calls):08d}x"[:11], "title": "XO other"}]
+        watcher._raw_search = fake  # type: ignore
+        try:
+            out = watcher._search_all("XO", 5)
+        finally:
+            import importlib
+            importlib.reload(watcher)
+        ids = [e["id"] for e in out]
+        self.assertEqual(len(ids), len(set(ids)))   # deduped across queries
+        self.assertGreaterEqual(len(calls), 2)       # more than one query run
+
+
 if __name__ == "__main__":
     unittest.main()
