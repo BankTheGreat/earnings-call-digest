@@ -1,0 +1,9 @@
+{
+  "events": [
+    {"tStartMs": 0, "dDurationMs": 4000, "segs": [{"utf8": "สวัสดีครับ นักลงทุน"}]},
+    {"tStartMs": 5000, "dDurationMs": 3000, "segs": [{"utf8": "วันนี้เราจะคุยเรื่อง "}, {"utf8": "PTT"}]},
+    {"tStartMs": 65000, "dDurationMs": 3000, "segs": [{"utf8": "รายได้ 100,000 ล้านบาท"}]},
+    {"tStartMs": 66000, "dDurationMs": 3000, "segs": [{"utf8": "รายได้ 100,000 ล้านบาท"}]},
+    {"tStartMs": 125000, "dDurationMs": 3000, "segs": [{"utf8": "กำไรโต 15 เปอร์เซ็นต์"}]}
+  ]
+}

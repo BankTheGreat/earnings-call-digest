@@ -1,0 +1,37 @@
+# provenance: aerith-direct (acknowledged-bypass: standalone extraction of Master-Bank-owned engine per approved plan swift-mixing-stallman)
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "earnings-call-digest"
+version = "1.0.0"
+description = "Turn a YouTube earnings-call / OppDay video into a polished, quote-verified per-stock HTML digest — AI-agnostic (session mode or BYO-key)."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+keywords = ["earnings-call", "youtube", "transcript", "investing", "oppday", "llm", "agent-skill"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = [
+    "yt-dlp>=2024.1.1",
+    "httpx>=0.24",
+    "youtube-transcript-api>=0.6",
+    "pypdf>=4.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[project.scripts]
+earnings-digest = "earnings_digest.cli:main"
+
+[tool.setuptools]
+packages = ["earnings_digest"]
+
+[tool.setuptools.package-data]
+earnings_digest = ["templates/*.md"]
