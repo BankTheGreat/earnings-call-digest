@@ -47,7 +47,7 @@ pip install earnings-call-digest
 Or from source:
 
 ```bash
-git clone https://github.com/<your-account>/earnings-call-digest
+git clone https://github.com/BankTheGreat/earnings-call-digest
 cd earnings-call-digest
 pip install -e .
 ```

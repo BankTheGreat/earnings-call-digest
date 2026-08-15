@@ -16,7 +16,7 @@ a YouTube URL (or a ticker + quarter) and produce an HTML digest.
 Requires Python 3.9+.
 
 ```bash
-pip install git+https://github.com/AnuNim2534/earnings-call-digest
+pip install git+https://github.com/BankTheGreat/earnings-call-digest
 ```
 
 Verify it installed:
