@@ -93,13 +93,17 @@ def _title_has_base(title: str, base: str) -> bool:
                      title or "", re.IGNORECASE) is not None
 
 
-def _search_queries(base: str) -> list[str]:
-    # Broad company-OppDay searches. The exact quarter is matched from the
-    # TITLE afterwards — putting the quarter/year IN the query over-constrains
-    # YouTube search and returns zero results (real bug, 2025), so it is left out.
+def _search_queries(base: str, q: int, year: int) -> list[str]:
+    # "OppDay" and "Earnings Call" are INTERCHANGEABLE — SET renamed the format
+    # from 2026, so a video may be titled either way; search BOTH or 2026+ videos
+    # are missed. YouTube search returns a narrow, unstable slice from any single
+    # query, so we run several focused ANGLES (both terms, broad + quarter-focused)
+    # and merge. (Over-stuffing ONE query with every term returns zero results.)
     return [
-        f"{base} opportunity day",
         f"{base} oppday โอกาสเดย์",
+        f"{base} earnings call oppday",
+        f"{base} oppday Q{q}/{year}",
+        f"{base} earnings call Q{q}/{year}",
     ]
 
 
@@ -119,12 +123,12 @@ def _raw_search(query: str, n: int) -> list[dict]:
     return [e for e in (info.get("entries") or []) if e]
 
 
-def _search_all(base: str, n: int) -> list[dict]:
+def _search_all(base: str, q: int, year: int, n: int) -> list[dict]:
     """Run every broad query and merge, deduping by video id (one query alone
     is an unreliable narrow slice of YouTube search)."""
     seen: set[str] = set()
     out: list[dict] = []
-    for query in _search_queries(base):
+    for query in _search_queries(base, q, year):
         for e in _raw_search(query, n):
             vid = e.get("id")
             if vid and vid not in seen:
@@ -151,7 +155,7 @@ def search_candidates(base: str, quarter: str, n: int = 12) -> list[Candidate]:
     quarter; propagates yt_dlp/network errors to the caller (mapped by cli)."""
     q, year = parse_quarter(quarter)
     try:
-        entries = _search_all(base, n)
+        entries = _search_all(base, q, year, n)
     except Exception as exc:  # noqa: BLE001 — surfaced as a typed, truncated error
         raise DiscoveryError(
             f"YouTube search failed ({type(exc).__name__}): {str(exc).splitlines()[0][:200]}"

@@ -78,32 +78,32 @@ class TestDiscoverNeverGuess(unittest.TestCase):
 
 
 class TestSearchQueryFix(unittest.TestCase):
-    def test_queries_do_not_contain_quarter_or_year(self):
-        # Regression (real bug 2025): the quarter/year must NOT be in the search
-        # query — it over-constrains YouTube search and returns zero results.
-        # The quarter is matched from the TITLE afterwards.
-        qs = watcher._search_queries("XO")
-        self.assertTrue(qs)
-        for query in qs:
-            self.assertIn("XO", query)
-            for tok in ("2026", "2569", "Q2", "/"):
-                self.assertNotIn(tok, query)
+    def test_oppday_and_earnings_call_both_searched(self):
+        # OppDay and "Earnings Call" are interchangeable (SET renamed the format
+        # from 2026); discovery must search BOTH or it misses 2026+ videos.
+        qs = watcher._search_queries("XO", 2, 2026)
+        joined = " || ".join(qs).lower()
+        self.assertIn("oppday", joined)
+        self.assertIn("earnings call", joined)
+        self.assertTrue(any("q2/2026" in x.lower() for x in qs))  # quarter-focused angle
+        for x in qs:
+            self.assertIn("XO", x)
 
     def test_search_all_merges_and_dedupes(self):
         calls = []
         def fake(query, n):
             calls.append(query)
-            return [{"id": "dupvid0001x", "title": "XO oppday Q2/2569"},
+            return [{"id": "dupvid0001x", "title": "XO earnings call Q2/2026"},
                     {"id": f"uq{len(calls):08d}x"[:11], "title": "XO other"}]
         watcher._raw_search = fake  # type: ignore
         try:
-            out = watcher._search_all("XO", 5)
+            out = watcher._search_all("XO", 2, 2026, 5)
         finally:
             import importlib
             importlib.reload(watcher)
         ids = [e["id"] for e in out]
-        self.assertEqual(len(ids), len(set(ids)))   # deduped across queries
-        self.assertGreaterEqual(len(calls), 2)       # more than one query run
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertGreaterEqual(len(calls), 2)
 
 
 if __name__ == "__main__":
