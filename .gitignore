@@ -19,3 +19,6 @@ Thumbs.db
 .idea/
 .vscode/
 .pytest_cache/
+
+# Local dev notes (internal, never shipped)
+PROJECT_MEMORY.md
