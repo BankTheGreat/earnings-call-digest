@@ -21,7 +21,11 @@ period: null
 company_name: null
 anchored_total: null
 grounding_slide: null
+grounding_slide_status: null
+grounding_slide_detail: null
 grounding_mda: null
+grounding_mda_status: null
+grounding_mda_detail: null
 doc_checked_total: null
 doc_confirmed_total: null
 entities_unresolved: [Some Unlisted Co]

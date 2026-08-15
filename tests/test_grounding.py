@@ -68,3 +68,33 @@ class TestCrossCheck(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestFrontFields(unittest.TestCase):
+    """Honesty fields: *_status must tell WHY the name field is null —
+    a located-but-scanned PDF is NOT an absent PDF."""
+
+    def _rep(self):
+        from earnings_digest.grounding import GroundingReport
+        r = GroundingReport()
+        r.checked_total, r.confirmed_total = 5, 3
+        return r
+
+    def test_found_doc_keeps_name_and_status(self):
+        f = grounding.front_fields(
+            DocHit("slide", Path("A Opp Day 2026Q2.pdf"), "found"),
+            DocHit("mda", Path("A MDA 2026Q2.pdf"), "found"), self._rep())
+        self.assertEqual(f["grounding_slide"], "A Opp Day 2026Q2.pdf")
+        self.assertEqual(f["grounding_slide_status"], "found")
+        self.assertIsNone(f["grounding_slide_detail"])
+
+    def test_scanned_doc_is_not_absent(self):
+        f = grounding.front_fields(
+            DocHit("slide", Path("XO Opp Day 2026Q2.pdf"), "no_text_layer",
+                   "45 pages, no extractable text (scan?)"),
+            DocHit("mda", None, "absent", "no document supplied"), self._rep())
+        self.assertIsNone(f["grounding_slide"])
+        self.assertEqual(f["grounding_slide_status"], "no_text_layer")
+        self.assertIn("XO Opp Day 2026Q2.pdf", f["grounding_slide_detail"])
+        self.assertEqual(f["grounding_mda_status"], "absent")
+        self.assertNotIn(".pdf", f["grounding_mda_detail"] or "")

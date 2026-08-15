@@ -331,16 +331,26 @@ def convert(md_path: Path) -> Path:
         dcls = "g" if dpct >= 70 else "w"
         badges.append(f'<span class="bdg {dcls}">ตัวเลขยืนยันกับสไลด์/MD&amp;A {dok}/{dchecked} ({dpct}%)</span>')
     else:
-        badges.append('<span class="bdg w">ไม่พบสไลด์/MD&amp;A ของงวดนี้ให้ยืนยัน</span>')
+        stat = {front.get("grounding_slide_status"), front.get("grounding_mda_status")}
+        if "no_text_layer" in stat:
+            badges.append('<span class="bdg w">สไลด์/MD&amp;A เป็นไฟล์สแกน — '
+                          'ยืนยันตัวเลขไม่ได้ (เอกสารมี ไม่ใช่ไม่มี)</span>')
+        else:
+            badges.append('<span class="bdg w">ไม่พบสไลด์/MD&amp;A ของงวดนี้ให้ยืนยัน</span>')
 
     takeaway = _first_summary_bullet(body)
     # MB 2026-08-06: no cost line; clip link lives in the identity row;
     # documents listed plainly under "Materials:".
-    gdocs = " · ".join(
-        html.escape(str(front.get(k)))
-        for k in ("grounding_slide", "grounding_mda")
-        if front.get(k) not in (None, "", "null")
-    )
+    _mats = []
+    for k in ("grounding_slide", "grounding_mda"):
+        name = front.get(k)
+        if name not in (None, "", "null"):
+            _mats.append(html.escape(str(name)))
+        elif front.get(f"{k}_status") == "no_text_layer":
+            det = str(front.get(f"{k}_detail") or "")
+            fname = det.split(" — ")[0] if det else "(scan)"
+            _mats.append(html.escape(fname) + ' <span class="mut">(สแกน — อ่านไม่ได้)</span>')
+    gdocs = " · ".join(_mats)
     prov = (
         f'วิเคราะห์โดย {html.escape(str(front.get("summary_model") or "?"))} '
         f'(โหมด {html.escape(str(front.get("summary_mode") or "?"))})'

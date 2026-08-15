@@ -147,9 +147,11 @@ def index_row_from_front(front: dict, path: Path) -> dict:
         "quote_unverified_count": front.get("quote_unverified_count"),
         "polish_status": front.get("polish_status"),
         "duration_s": front.get("duration_s"),
-        # REQ-G grounding fields.
+        # REQ-G grounding fields (+_status honesty: null name ≠ absent doc).
         "grounding_slide": front.get("grounding_slide"),
+        "grounding_slide_status": front.get("grounding_slide_status"),
         "grounding_mda": front.get("grounding_mda"),
+        "grounding_mda_status": front.get("grounding_mda_status"),
         "doc_checked_total": front.get("doc_checked_total"),
         "doc_confirmed_total": front.get("doc_confirmed_total"),
         "at": writer.now_ict(),
@@ -386,8 +388,7 @@ def finalize_common(meta: dict, raw_text: str, analysis_raw: dict,
             anchored_total=anchored_total,
             analysis=normalized,
         )
-        front["grounding_slide"] = g_slide.path.name if g_slide.status == "found" else None
-        front["grounding_mda"] = g_mda.path.name if g_mda.status == "found" else None
+        front.update(grounding.front_fields(g_slide, g_mda, g_rep))
         front["doc_checked_total"] = g_rep.checked_total
         front["doc_confirmed_total"] = g_rep.confirmed_total
         primary = meta.get("ticker", {}).get("qualified")

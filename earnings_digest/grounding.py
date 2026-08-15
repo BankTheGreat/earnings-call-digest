@@ -146,3 +146,26 @@ def cross_check(numbers: list[dict], slide: DocHit, mda: DocHit) -> GroundingRep
     rep.checked_total = len(rep.per_number)
     rep.confirmed_total = confirmed
     return rep
+
+def _hit_detail(hit: DocHit) -> str | None:
+    """Human line that keeps the located filename even when the doc is unusable
+    (a scanned PDF is NOT an absent PDF — the honesty field)."""
+    if hit.path is not None and hit.status != "found":
+        return f"{hit.path.name} — {hit.detail}" if hit.detail else hit.path.name
+    return hit.detail or None
+
+
+def front_fields(slide: DocHit, mda: DocHit, rep: GroundingReport) -> dict:
+    """Frontmatter/index fields for one grounding run. `*_status` always tells
+    WHY the name field is null: found | no_text_layer | absent | ambiguous | error."""
+    return {
+        "grounding_slide": slide.path.name if slide.status == "found" and slide.path else None,
+        "grounding_slide_status": slide.status,
+        "grounding_slide_detail": _hit_detail(slide),
+        "grounding_mda": mda.path.name if mda.status == "found" and mda.path else None,
+        "grounding_mda_status": mda.status,
+        "grounding_mda_detail": _hit_detail(mda),
+        "doc_checked_total": rep.checked_total,
+        "doc_confirmed_total": rep.confirmed_total,
+    }
+
