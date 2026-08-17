@@ -76,9 +76,9 @@ class TestCacheAndRevisions(EnvSandbox):
 
 
 class TestKbWrite(EnvSandbox):
-    def _write(self, prior=None, title="PTT Oppday Q2 2026"):
+    def _write(self, prior=None, title="PTT Oppday Q2 2026", content="content-body\n"):
         return writer.write_kb_render(
-            "PTT.BK", "2026-07-15", "dQw4w9WgXcQ", title, "content-body\n", prior
+            "PTT.BK", "2026-07-15", "dQw4w9WgXcQ", title, content, prior
         )
 
     def test_path_shape(self):
@@ -90,19 +90,31 @@ class TestKbWrite(EnvSandbox):
         self.assertEqual(rel.parts[2], "YouTube")
         self.assertEqual(rel.parts[3], "2026-07-15 [dQw4w9WgXcQ] PTT Oppday Q2 2026.md")
 
-    def test_supersede_never_deletes(self):
-        p1, _ = self._write()
-        p2, warnings = self._write(prior=1)
+    def test_supersede_goes_to_subfolder_never_deletes(self):
+        p1, _ = self._write(content="v1\n")
+        p2, warnings = self._write(prior=1, content="v2\n")
         self.assertTrue(p2.is_file())
-        names = [e.name for e in p2.parent.iterdir()]
-        self.assertIn("2026-07-15 [dQw4w9WgXcQ] PTT Oppday Q2 2026 (superseded r1).md", names)
-        self.assertTrue(any("preserved" in w for w in warnings))
+        main_names = [e.name for e in p2.parent.iterdir() if e.is_file()]
+        self.assertNotIn(
+            "2026-07-15 [dQw4w9WgXcQ] PTT Oppday Q2 2026 (superseded r1).md", main_names)
+        sup_dir = p2.parent / writer.SUPERSEDED_DIRNAME
+        self.assertTrue(sup_dir.is_dir())
+        sup_names = [e.name for e in sup_dir.iterdir()]
+        self.assertIn("2026-07-15 [dQw4w9WgXcQ] PTT Oppday Q2 2026 (superseded r1).md", sup_names)
+        self.assertTrue(any("_superseded" in w for w in warnings))
+
+    def test_identical_render_no_supersede(self):
+        p1, _ = self._write(content="same\n")
+        p2, warnings = self._write(prior=1, content="same\n")
+        self.assertEqual(p1, p2)
+        self.assertFalse((p2.parent / writer.SUPERSEDED_DIRNAME).exists())
+        self.assertTrue(any("unchanged" in w for w in warnings))
 
     def test_conflict_copy_reported_not_deleted(self):
         p1, _ = self._write()
         conflict = p1.with_name(p1.stem + " (DESKTOP-conflict).md")
         conflict.write_text("hand-annotated by the user", encoding="utf-8")
-        p2, warnings = self._write(prior=1)
+        p2, warnings = self._write(prior=1, content="changed\n")
         self.assertTrue(conflict.is_file())  # F2: NEVER unlinked
         self.assertTrue(any("conflict copy" in w for w in warnings))
 

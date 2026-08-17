@@ -23,6 +23,11 @@ from pathlib import Path
 
 from . import config, tickers
 
+# (b) superseded renders live in a per-ticker subfolder so the main YouTube
+# folder shows only the current .md/.html — dashboard- and AI-scan-clean (F4:
+# evidence kept, never destroyed).
+SUPERSEDED_DIRNAME = "_superseded"
+
 
 class LockBusyError(RuntimeError):
     pass
@@ -221,20 +226,35 @@ def write_kb_render(
     kdir.mkdir(parents=True, exist_ok=True)
     target = kdir / kb_filename(published, video_id, title)
 
-    if target.is_file() and prior_revision is not None:
-        superseded = target.with_name(
-            f"{target.stem} (superseded r{prior_revision}){target.suffix}"
-        )
-        n = 2
-        while superseded.exists():
-            superseded = target.with_name(
-                f"{target.stem} (superseded r{prior_revision}-{n}){target.suffix}"
-            )
-            n += 1
-        os.replace(target, superseded)
-        warnings.append(f"previous render preserved as: {superseded.name}")
+    unchanged = False
+    if target.is_file():
+        try:
+            existing = target.read_text(encoding="utf-8")
+        except OSError:
+            existing = None
+        if existing == content:
+            # (a) Identical render — do NOT mint a superseded twin. Re-render
+            # rounds that leave a given stock's content unchanged used to pile up
+            # (superseded rN) copies carrying no information; the on-disk file
+            # already IS this render, so there is nothing to write.
+            unchanged = True
+        elif prior_revision is not None:
+            # (b) Preserve the prior render under _superseded/ (F4 — evidence is
+            # never destroyed); the main folder keeps only the current render.
+            sup_dir = kdir / SUPERSEDED_DIRNAME
+            sup_dir.mkdir(parents=True, exist_ok=True)
+            superseded = sup_dir / f"{target.stem} (superseded r{prior_revision}){target.suffix}"
+            n = 2
+            while superseded.exists():
+                superseded = sup_dir / f"{target.stem} (superseded r{prior_revision}-{n}){target.suffix}"
+                n += 1
+            os.replace(target, superseded)
+            warnings.append(f"previous render preserved under {SUPERSEDED_DIRNAME}/: {superseded.name}")
 
-    atomic_write(target, content)
+    if unchanged:
+        warnings.append("render unchanged — kept existing file (no new revision written)")
+    else:
+        atomic_write(target, content)
 
     # F10: the on-disk dirent is the truth (NTFS may normalize the name).
     actual = target
