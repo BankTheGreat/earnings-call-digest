@@ -13,8 +13,11 @@ only the analysis, as a single JSON object, in **session mode**.
 ## Prerequisite (once)
 
 ```bash
-pip install earnings-call-digest
+python -m pip install "git+https://github.com/BankTheGreat/earnings-call-digest.git"
 ```
+
+Requires Python 3.9+ and Git. Install from GitHub; the package is not currently
+published on PyPI.
 
 ## Session mode — the primary path (no API key, $0)
 

@@ -41,10 +41,11 @@ The goal is simple: a page you can trust enough to act on, or an honest refusal.
 ## Install
 
 ```bash
-pip install earnings-call-digest
+python -m pip install "git+https://github.com/BankTheGreat/earnings-call-digest.git"
 ```
 
-Or from source:
+Install from GitHub (requires Git); the package is not currently published on
+PyPI. To develop from a local checkout instead:
 
 ```bash
 git clone https://github.com/BankTheGreat/earnings-call-digest
