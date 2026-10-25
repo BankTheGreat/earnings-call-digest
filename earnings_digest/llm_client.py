@@ -116,12 +116,30 @@ def calc_cost(model: str, usage: dict[str, int]) -> float:
 # Per-vendor request shapers (private)
 # =============================================================================
 
+# Models that still take a fixed thinking budget: Haiku 4.5 and the pre-4.6 generation.
+# Every newer model (the default claude-opus-4-7 included) rejects `budget_tokens`
+# with a 400 and uses adaptive thinking instead.
+_BUDGET_THINKING_MODELS = ("haiku-4-5", "sonnet-4-5", "opus-4-5", "opus-4-1", "opus-4-0",
+                           "sonnet-4-0", "opus-4-2025", "sonnet-4-2025", "claude-3")
+
+
+def _anthropic_thinking(model: str, thinking_budget: Optional[int]) -> Optional[dict]:
+    """The thinking block this model accepts, or None. A caller's budget is honoured only where
+    the API still takes one; elsewhere it means 'think', which is adaptive thinking."""
+    if not thinking_budget:
+        return None
+    if any(tag in (model or "") for tag in _BUDGET_THINKING_MODELS):
+        return {"type": "enabled", "budget_tokens": thinking_budget}
+    return {"type": "adaptive"}
+
+
 def _anthropic_payload(model, messages, tools, thinking_budget, max_tokens):
     payload: dict[str, Any] = {"model": model, "max_tokens": max_tokens, "messages": messages}
     if tools:
         payload["tools"] = tools
-    if thinking_budget:
-        payload["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
+    thinking = _anthropic_thinking(model, thinking_budget)
+    if thinking:
+        payload["thinking"] = thinking
     return payload
 
 def _gemini_payload(model, messages, tools, thinking_budget, max_tokens):
